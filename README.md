@@ -2,11 +2,8 @@
 
 ## How to install
 
-1. Build CSI Driver image:
-   ```
-   docker build . --build-arg TAG=<IMAGE_TAG>
-   ```
-2. Create a secret:
+
+1. Create a secret:
    ```
    apiVersion: v1
    kind: Secret
@@ -16,4 +13,7 @@
    stringData:
      token: "TOKEN"
    ```
-3. Deploy CSI. Manifest [**example**](/releases/dev.yaml)
+2. Deploy CSI:
+   ```
+   kubectl apply -f https://raw.githubusercontent.com/advancedhosting/csi-advancedhosting/master/deploy/advancedhosting-csi-{VERSION}.yaml
+   ```
