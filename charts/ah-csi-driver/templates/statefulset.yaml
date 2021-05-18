@@ -1,0 +1,82 @@
+kind: StatefulSet
+apiVersion: apps/v1
+metadata:
+  name: csi-ah-controller
+  namespace: kube-system
+  labels:
+    {{- include "ah-csi-driver.labels" . | nindent 4 }}
+spec:
+  serviceName: "csi-ah"
+  selector:
+    matchLabels:
+      app: csi-ah-controller
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: csi-ah-controller
+        role: csi-ah
+    spec:
+      priorityClassName: system-cluster-critical
+      serviceAccount: csi-ah-controller-sa
+      containers:
+        - name: csi-provisioner
+          image: quay.io/k8scsi/csi-provisioner:v2.0.2
+          args:
+            - "--csi-address=$(ADDRESS)"
+            - "--default-fstype=ext4"
+            - "--v=5"
+          env:
+            - name: ADDRESS
+              value: /var/lib/csi/sockets/pluginproxy/csi.sock
+          imagePullPolicy: "IfNotPresent"
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /var/lib/csi/sockets/pluginproxy/
+        - name: csi-attacher
+          image: quay.io/k8scsi/csi-attacher:v3.0.0
+          args:
+            - "--csi-address=$(ADDRESS)"
+            - "--v=5"
+          env:
+            - name: ADDRESS
+              value: /var/lib/csi/sockets/pluginproxy/csi.sock
+          imagePullPolicy: "IfNotPresent"
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /var/lib/csi/sockets/pluginproxy/
+        - name: csi-resizer
+          image: quay.io/k8scsi/csi-resizer:v1.0.0
+          args:
+            - "--csi-address=$(ADDRESS)"
+            - "--timeout=30s"
+            - "--v=5"
+            - "--handle-volume-inuse-error=false"
+          env:
+            - name: ADDRESS
+              value: /var/lib/csi/sockets/pluginproxy/csi.sock
+          imagePullPolicy: "IfNotPresent"
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /var/lib/csi/sockets/pluginproxy/
+        - name: csi-ah-plugin
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args :
+            - "--v=5"
+            - "--endpoint=$(CSI_ENDPOINT)"
+            - "--token=$(AH_ACCESS_TOKEN)"
+          env:
+            - name: CSI_ENDPOINT
+              value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
+            - name: AH_ACCESS_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: advancedhosting
+                  key: token
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /var/lib/csi/sockets/pluginproxy/
+      volumes:
+        - name: socket-dir
+          emptyDir: {}

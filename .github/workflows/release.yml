@@ -6,20 +6,42 @@ on:
       - "v*"
 
 jobs:
-  release:
+#  release:
+#    runs-on: ubuntu-latest
+#    steps:
+#    - name: Checkout code
+#      uses: actions/checkout@v2
+#    - name: Set env
+#      run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+#    - name: Publish
+#      env:
+#        DOCKER_USER: ${{ secrets.DOCKER_USER }}
+#        DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+#        DOCKER_IMAGE: advancedhosting/ah-csi-driver
+#      run: |
+#        echo "$DOCKER_IMAGE":"$RELEASE_VERSION"
+#        docker login -u "$DOCKER_USER" -p "$DOCKER_PASSWORD"
+#        docker build -t "$DOCKER_IMAGE":"$RELEASE_VERSION"  .
+#        docker push "$DOCKER_IMAGE":"$RELEASE_VERSION"
+
+  release_helm:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
-    - name: Set env
-      run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
-    - name: Publish
-      env:
-        DOCKER_USER: ${{ secrets.DOCKER_USER }}
-        DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-        DOCKER_IMAGE: advancedhosting/ah-csi-driver
-      run: |
-        echo "$DOCKER_IMAGE":"$RELEASE_VERSION"
-        docker login -u "$DOCKER_USER" -p "$DOCKER_PASSWORD"
-        docker build -t "$DOCKER_IMAGE":"$RELEASE_VERSION"  .
-        docker push "$DOCKER_IMAGE":"$RELEASE_VERSION"
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Configure Git
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+      - name: Install Helm
+        uses: azure/setup-helm@v1
+        with:
+          version: v3.4.0
+      - name: Run chart-releaser
+        uses: helm/chart-releaser-action@v1.2.1
+        env:
+          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        with:
+          config: .github/cr.yaml
