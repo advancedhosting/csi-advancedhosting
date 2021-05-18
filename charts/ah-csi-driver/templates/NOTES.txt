@@ -1,0 +1,3 @@
+Run to verify:
+
+    kubectl get pod -l "app.kubernetes.io/name={{ include "ah-csi-driver.name" . }},app.kubernetes.io/instance={{ .Release.Name }}"
