@@ -1,0 +1,99 @@
+kind: DaemonSet
+apiVersion: apps/v1
+metadata:
+  name: csi-ah-node
+  namespace: kube-system
+  labels:
+    {{- include "ah-csi-driver.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app: csi-ah-node
+  template:
+    metadata:
+      labels:
+        app: csi-ah-node
+        role: csi-ah
+        {{- include "ah-csi-driver.labels" . | nindent 8 }}
+    spec:
+      priorityClassName: system-node-critical
+      serviceAccount:  {{ .Values.serviceAccount.node.name }}
+      hostNetwork: true
+      initContainers:
+        - name: automount-udev-deleter
+          image: alpine:3
+          volumeMounts:
+            - name: udev-rules-dir
+              mountPath: /etc/udev/rules.d/
+      containers:
+        - name: csi-node-driver-registrar
+          image: quay.io/k8scsi/csi-node-driver-registrar:v2.0.1
+          args:
+            - "--v=5"
+            - "--csi-address=$(ADDRESS)"
+            - "--kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)"
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "rm -rf /registration/csi.advancedhosting.com /registration/csi.advancedhosting.com-reg.sock"]
+          env:
+            - name: ADDRESS
+              value: /csi/csi.sock
+            - name: DRIVER_REG_SOCK_PATH
+              value: /var/lib/kubelet/plugins/csi.advancedhosting.com/csi.sock
+            - name: KUBE_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          volumeMounts:
+            - name: plugin-dir
+              mountPath: /csi/
+            - name: registration-dir
+              mountPath: /registration/
+        - name: csi-ah-plugin
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - "--v=5"
+            - "--endpoint=$(CSI_ENDPOINT)"
+            - "--token=$(AH_ACCESS_TOKEN)"
+          env:
+            - name: CSI_ENDPOINT
+              value: unix:///csi/csi.sock
+            - name: AH_ACCESS_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: advancedhosting
+                  key: token
+          securityContext:
+            privileged: true
+            capabilities:
+              add: ["SYS_ADMIN"]
+            allowPrivilegeEscalation: true
+          volumeMounts:
+            - name: plugin-dir
+              mountPath: /csi
+            - name: pods-mount-dir
+              mountPath: /var/lib/kubelet
+              mountPropagation: "Bidirectional"
+            - name: device-dir
+              mountPath: /dev
+      volumes:
+        - name: registration-dir
+          hostPath:
+            path: /var/lib/kubelet/plugins_registry/
+            type: DirectoryOrCreate
+        - name: plugin-dir
+          hostPath:
+            path: /var/lib/kubelet/plugins/csi.advancedhosting.com
+            type: DirectoryOrCreate
+        - name: pods-mount-dir
+          hostPath:
+            path: /var/lib/kubelet
+            type: Directory
+        - name: device-dir
+          hostPath:
+            path: /dev
+        - name: udev-rules-dir
+          hostPath:
+            path: /etc/udev/rules.d/
