@@ -2,5 +2,5 @@ apiVersion: v2
 name: ah-csi-driver
 description: A Helm chart for AdvancedHosting CSI Driver
 type: application
-version: 0.1.0
+version: 0.1.2
 appVersion: "1.16.0"
