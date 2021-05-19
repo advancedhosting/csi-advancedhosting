@@ -22,5 +22,5 @@ Deploy CSI via helm:
 ```
 helm repo add ah-csi https://advancedhosting.github.io/csi-advancedhosting
 helm repo update
-helm install ah-csi/ah-csi-driver
+helm install csi-driver ah-csi/ah-csi-driver
 ```
