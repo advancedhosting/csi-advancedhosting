@@ -2,7 +2,6 @@ kind: DaemonSet
 apiVersion: apps/v1
 metadata:
   name: csi-ah-node
-  namespace: kube-system
   labels:
     {{- include "ah-csi-driver.labels" . | nindent 4 }}
 spec:
@@ -57,6 +56,9 @@ spec:
             - "--v=5"
             - "--endpoint=$(CSI_ENDPOINT)"
             - "--token=$(AH_ACCESS_TOKEN)"
+            {{ if .Values.apiUrl }}
+            - "--url={{ .Values.apiUrl}}"
+            {{ end }}
           env:
             - name: CSI_ENDPOINT
               value: unix:///csi/csi.sock
