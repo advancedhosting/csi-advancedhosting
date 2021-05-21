@@ -36,3 +36,12 @@ resources: {}
 nodeSelector: {}
 tolerations: []
 affinity: {}
+
+storageClasses: []
+  # Example
+  # - name: HHD-AMS1-LVL1
+  #   product: hdd_lvl1_ams1
+  #   default: true
+  #   reclaimPolicy: Retain
+  # - name: HHD-AMS1-LVL2
+  #   product: hdd_lvl1_ams1

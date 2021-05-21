@@ -66,9 +66,9 @@ spec:
             - "--v=5"
             - "--endpoint=$(CSI_ENDPOINT)"
             - "--token=$(AH_ACCESS_TOKEN)"
-            {{ if .Values.apiUrl }}
+            {{- if .Values.apiUrl }}
             - "--url={{ .Values.apiUrl}}"
-            {{ end }}
+            {{- end }}
           env:
             - name: CSI_ENDPOINT
               value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
