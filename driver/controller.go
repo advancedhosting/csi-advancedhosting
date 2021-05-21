@@ -69,10 +69,11 @@ func volumeSize(capRange *csi.CapacityRange) (int64, error) {
 type controllerService struct {
 	client               *ah.APIClient
 	defaultVolumeProduct string
+	clusterID            string
 }
 
-func NewControllerService(client *ah.APIClient) *controllerService {
-	return &controllerService{client: client}
+func NewControllerService(client *ah.APIClient, clusterID string) *controllerService {
+	return &controllerService{client: client, clusterID: clusterID}
 }
 
 func (c *controllerService) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
@@ -81,6 +82,9 @@ func (c *controllerService) CreateVolume(ctx context.Context, req *csi.CreateVol
 	volName := req.GetName()
 	if volName == "" {
 		return nil, status.Error(codes.InvalidArgument, "Volume name not provided")
+	}
+	if c.clusterID != "" {
+		volName = fmt.Sprintf("kube-%s-%s", c.clusterID, volName)
 	}
 
 	var productSlug string

@@ -40,9 +40,10 @@ const (
 )
 
 type DriverOptions struct {
-	Endpoint string
-	Url      string
-	Token    string
+	Endpoint  string
+	Url       string
+	Token     string
+	ClusterID string
 }
 
 // Driver implements the csi driver according the spec
@@ -64,7 +65,7 @@ func NewDriver(options *DriverOptions) (*Driver, error) {
 		return nil, fmt.Errorf("an error occurred while creating api client")
 	}
 
-	driverControllerService := NewControllerService(client)
+	driverControllerService := NewControllerService(client, options.ClusterID)
 	driverNodeService, err := NewNodeService(client)
 	if err != nil {
 		return nil, fmt.Errorf("error creating driverNodeService: %v", err)

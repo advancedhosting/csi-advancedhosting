@@ -26,17 +26,19 @@ import (
 func main() {
 
 	var (
-		endpoint = flag.String("endpoint", "unix://tmp/csi.sock", "CSI endpoint.")
-		apiUrl   = flag.String("url", "https://api.websa.com", "Advanced Hosting api url.")
-		apiToken = flag.String("token", "", "Advanced Hosting access token.")
+		endpoint  = flag.String("endpoint", "unix://tmp/csi.sock", "CSI endpoint.")
+		apiUrl    = flag.String("url", "https://api.websa.com", "Advanced Hosting api url.")
+		apiToken  = flag.String("token", "", "Advanced Hosting access token.")
+		clusterID = flag.String("cluster-id", "", "Cluster ID.")
 	)
 	klog.InitFlags(nil)
 	flag.Parse()
 
 	options := &driver.DriverOptions{
-		Endpoint: *endpoint,
-		Url:      *apiUrl,
-		Token:    *apiToken,
+		Endpoint:  *endpoint,
+		Url:       *apiUrl,
+		Token:     *apiToken,
+		ClusterID: *clusterID,
 	}
 	csiDriver, err := driver.NewDriver(options)
 	if err != nil {
