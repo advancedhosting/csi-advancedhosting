@@ -88,13 +88,13 @@ func TestControllerCreateVolume(t *testing.T) {
 					State: "creating",
 				}
 				returnValue.VolumePool = (*struct {
-					Name             string   `json:"name,omitempty"`  //nolint
+					Name             string   `json:"name,omitempty"` //nolint
 					DatacenterIDs    []string `json:"datacenter_ids,omitempty"`
-					ReplicationLevel int      `json:"replication_level,omitempty"`  //nolint
+					ReplicationLevel int      `json:"replication_level,omitempty"` //nolint
 				})(&struct {
-					Name             string  //nolint
+					Name             string //nolint
 					DatacenterIDs    []string
-					ReplicationLevel int  //nolint
+					ReplicationLevel int //nolint
 				}{DatacenterIDs: []string{"test-datacenter-id"}})
 				mockedVolumesAPI.EXPECT().Create(gomock.Eq(ctx), gomock.Eq(createRequest)).Return(returnValue, nil)
 				mockedVolumesAPI.EXPECT().Get(gomock.Eq(ctx), gomock.Eq(returnValue.ID)).Return(&ah.Volume{State: "creating"}, nil)
@@ -102,7 +102,77 @@ func TestControllerCreateVolume(t *testing.T) {
 
 				mockedClient := &ah.APIClient{Volumes: mockedVolumesAPI}
 
-				controllerSvc := NewControllerService(mockedClient)
+				controllerSvc := NewControllerService(mockedClient, "")
+
+				response, err := controllerSvc.CreateVolume(ctx, req)
+				if err != nil {
+					t.Fatalf("Unexpected error: %v", err)
+				}
+
+				volume := response.GetVolume()
+				if volume.GetVolumeId() != "volumeID" {
+					t.Errorf("Unexpected volume id: %v", volume.GetVolumeId())
+				}
+				if volume.GetCapacityBytes() != 10*gb {
+					t.Errorf("Unexpected capacity: %v", volume.GetCapacityBytes())
+				}
+
+				datacenterID := volume.GetAccessibleTopology()[0].GetSegments()[TopologySegmentDatacenter]
+				if datacenterID != "test-datacenter-id" {
+					t.Errorf("Unexpected datacenter: %v", datacenterID)
+				}
+			},
+		},
+		{
+			name: "ControllerCreateVolume Success with cluster-id",
+			testFunc: func(t *testing.T) {
+				req := &csi.CreateVolumeRequest{
+					Name:               "test-name",
+					CapacityRange:      capRange,
+					VolumeCapabilities: volCap,
+					Parameters:         params,
+				}
+
+				ctx := context.Background()
+
+				ctrl := gomock.NewController(t)
+				mockedVolumesAPI := mocks.NewMockVolumesAPI(ctrl)
+
+				filter := &ah.EqFilter{
+					Keys:  []string{"name"},
+					Value: "kube-test-cluster-id-test-name",
+				}
+				options := &ah.ListOptions{
+					Filters: []ah.FilterInterface{filter},
+				}
+				mockedVolumesAPI.EXPECT().List(gomock.Eq(ctx), gomock.Eq(options)).Return([]ah.Volume{}, nil, nil)
+
+				createRequest := &ah.VolumeCreateRequest{
+					Name:        "kube-test-cluster-id-test-name",
+					Size:        10,
+					ProductSlug: "test-product-slug",
+				}
+				returnValue := &ah.Volume{
+					ID:    "volumeID",
+					Size:  10,
+					State: "creating",
+				}
+				returnValue.VolumePool = (*struct {
+					Name             string   `json:"name,omitempty"` //nolint
+					DatacenterIDs    []string `json:"datacenter_ids,omitempty"`
+					ReplicationLevel int      `json:"replication_level,omitempty"` //nolint
+				})(&struct {
+					Name             string //nolint
+					DatacenterIDs    []string
+					ReplicationLevel int //nolint
+				}{DatacenterIDs: []string{"test-datacenter-id"}})
+				mockedVolumesAPI.EXPECT().Create(gomock.Eq(ctx), gomock.Eq(createRequest)).Return(returnValue, nil)
+				mockedVolumesAPI.EXPECT().Get(gomock.Eq(ctx), gomock.Eq(returnValue.ID)).Return(&ah.Volume{State: "creating"}, nil)
+				mockedVolumesAPI.EXPECT().Get(gomock.Eq(ctx), gomock.Eq(returnValue.ID)).Return(&ah.Volume{State: "ready"}, nil)
+
+				mockedClient := &ah.APIClient{Volumes: mockedVolumesAPI}
+
+				controllerSvc := NewControllerService(mockedClient, "test-cluster-id")
 
 				response, err := controllerSvc.CreateVolume(ctx, req)
 				if err != nil {
@@ -139,7 +209,7 @@ func TestControllerCreateVolume(t *testing.T) {
 				mockedVolumesAPI := mocks.NewMockVolumesAPI(ctrl)
 				mockedClient := &ah.APIClient{Volumes: mockedVolumesAPI}
 
-				controllerSvc := NewControllerService(mockedClient)
+				controllerSvc := NewControllerService(mockedClient, "")
 
 				r, err := controllerSvc.CreateVolume(ctx, req)
 				if err == nil {
@@ -169,7 +239,7 @@ func TestControllerCreateVolume(t *testing.T) {
 				mockedVolumesAPI := mocks.NewMockVolumesAPI(ctrl)
 				mockedClient := &ah.APIClient{Volumes: mockedVolumesAPI}
 
-				controllerSvc := NewControllerService(mockedClient)
+				controllerSvc := NewControllerService(mockedClient, "")
 
 				r, err := controllerSvc.CreateVolume(ctx, req)
 				if err == nil {
@@ -199,7 +269,7 @@ func TestControllerCreateVolume(t *testing.T) {
 				mockedVolumesAPI := mocks.NewMockVolumesAPI(ctrl)
 				mockedClient := &ah.APIClient{Volumes: mockedVolumesAPI}
 
-				controllerSvc := NewControllerService(mockedClient)
+				controllerSvc := NewControllerService(mockedClient, "")
 
 				r, err := controllerSvc.CreateVolume(ctx, req)
 				if err == nil {
@@ -229,7 +299,7 @@ func TestControllerCreateVolume(t *testing.T) {
 				mockedVolumesAPI := mocks.NewMockVolumesAPI(ctrl)
 				mockedClient := &ah.APIClient{Volumes: mockedVolumesAPI}
 
-				controllerSvc := NewControllerService(mockedClient)
+				controllerSvc := NewControllerService(mockedClient, "")
 
 				r, err := controllerSvc.CreateVolume(ctx, req)
 				if err == nil {
@@ -262,7 +332,7 @@ func TestControllerCreateVolume(t *testing.T) {
 				mockedVolumesAPI := mocks.NewMockVolumesAPI(ctrl)
 				mockedClient := &ah.APIClient{Volumes: mockedVolumesAPI}
 
-				controllerSvc := NewControllerService(mockedClient)
+				controllerSvc := NewControllerService(mockedClient, "")
 
 				r, err := controllerSvc.CreateVolume(ctx, req)
 				if err == nil {
@@ -312,7 +382,7 @@ func TestControllerCreateVolume(t *testing.T) {
 
 				mockedClient := &ah.APIClient{Volumes: mockedVolumesAPI}
 
-				controllerSvc := NewControllerService(mockedClient)
+				controllerSvc := NewControllerService(mockedClient, "")
 
 				r, err := controllerSvc.CreateVolume(ctx, req)
 				if err == nil {
@@ -360,7 +430,7 @@ func TestControllerCreateVolume(t *testing.T) {
 
 				mockedClient := &ah.APIClient{Volumes: mockedVolumesAPI}
 
-				controllerSvc := NewControllerService(mockedClient)
+				controllerSvc := NewControllerService(mockedClient, "")
 
 				r, err := controllerSvc.CreateVolume(ctx, req)
 				if err == nil {
@@ -403,13 +473,13 @@ func TestControllerCreateVolume(t *testing.T) {
 					Size: 10,
 				}
 				returnValue.VolumePool = (*struct {
-					Name             string   `json:"name,omitempty"`  //nolint
+					Name             string   `json:"name,omitempty"` //nolint
 					DatacenterIDs    []string `json:"datacenter_ids,omitempty"`
-					ReplicationLevel int      `json:"replication_level,omitempty"`  //nolint
+					ReplicationLevel int      `json:"replication_level,omitempty"` //nolint
 				})(&struct {
-					Name             string  //nolint
+					Name             string //nolint
 					DatacenterIDs    []string
-					ReplicationLevel int  //nolint
+					ReplicationLevel int //nolint
 				}{DatacenterIDs: []string{"test-datacenter-id"}})
 
 				listResponse := []ah.Volume{*returnValue}
@@ -418,7 +488,7 @@ func TestControllerCreateVolume(t *testing.T) {
 
 				mockedClient := &ah.APIClient{Volumes: mockedVolumesAPI}
 
-				controllerSvc := NewControllerService(mockedClient)
+				controllerSvc := NewControllerService(mockedClient, "")
 
 				response, err := controllerSvc.CreateVolume(ctx, req)
 				if err != nil {
@@ -469,7 +539,7 @@ func TestControllerDeleteVolume(t *testing.T) {
 
 				mockedClient := &ah.APIClient{Volumes: mockedVolumesAPI}
 
-				controllerSvc := NewControllerService(mockedClient)
+				controllerSvc := NewControllerService(mockedClient, "")
 
 				resp, err := controllerSvc.DeleteVolume(ctx, req)
 				if err != nil {
@@ -497,7 +567,7 @@ func TestControllerDeleteVolume(t *testing.T) {
 
 				mockedClient := &ah.APIClient{Volumes: mockedVolumesAPI}
 
-				controllerSvc := NewControllerService(mockedClient)
+				controllerSvc := NewControllerService(mockedClient, "")
 
 				r, err := controllerSvc.DeleteVolume(ctx, req)
 				if err == nil {
@@ -526,7 +596,7 @@ func TestControllerDeleteVolume(t *testing.T) {
 
 				mockedClient := &ah.APIClient{Volumes: mockedVolumesAPI}
 
-				controllerSvc := NewControllerService(mockedClient)
+				controllerSvc := NewControllerService(mockedClient, "")
 
 				resp, err := controllerSvc.DeleteVolume(ctx, req)
 				if err != nil {
@@ -556,7 +626,7 @@ func TestControllerDeleteVolume(t *testing.T) {
 
 				mockedClient := &ah.APIClient{Volumes: mockedVolumesAPI}
 
-				controllerSvc := NewControllerService(mockedClient)
+				controllerSvc := NewControllerService(mockedClient, "")
 
 				r, err := controllerSvc.DeleteVolume(ctx, req)
 				if err == nil {
@@ -612,7 +682,7 @@ func TestControllerPublishVolume(t *testing.T) {
 				mockedInstancesAPI.EXPECT().ActionInfo(gomock.Eq(ctx), gomock.Eq(req.NodeId), gomock.Eq(action.ID)).Return(&ah.InstanceAction{Action: &ah.Action{State: "success"}}, nil)
 				mockedClient := &ah.APIClient{Volumes: mockedVolumesAPI, Instances: mockedInstancesAPI}
 
-				controllerSvc := NewControllerService(mockedClient)
+				controllerSvc := NewControllerService(mockedClient, "")
 
 				resp, err := controllerSvc.ControllerPublishVolume(ctx, req)
 				if err != nil {
@@ -642,7 +712,7 @@ func TestControllerPublishVolume(t *testing.T) {
 
 				mockedClient := &ah.APIClient{Volumes: mockedVolumesAPI, Instances: mockedInstancesAPI}
 
-				controllerSvc := NewControllerService(mockedClient)
+				controllerSvc := NewControllerService(mockedClient, "")
 
 				r, err := controllerSvc.ControllerPublishVolume(ctx, req)
 				if err == nil {
@@ -673,7 +743,7 @@ func TestControllerPublishVolume(t *testing.T) {
 
 				mockedClient := &ah.APIClient{Volumes: mockedVolumesAPI, Instances: mockedInstancesAPI}
 
-				controllerSvc := NewControllerService(mockedClient)
+				controllerSvc := NewControllerService(mockedClient, "")
 
 				r, err := controllerSvc.ControllerPublishVolume(ctx, req)
 				if err == nil {
@@ -705,7 +775,7 @@ func TestControllerPublishVolume(t *testing.T) {
 				mockedClient := &ah.APIClient{Volumes: mockedVolumesAPI, Instances: mockedInstancesAPI}
 				mockedVolumesAPI.EXPECT().Get(gomock.Eq(ctx), gomock.Eq(req.VolumeId)).Return(nil, ah.ErrResourceNotFound)
 
-				controllerSvc := NewControllerService(mockedClient)
+				controllerSvc := NewControllerService(mockedClient, "")
 
 				r, err := controllerSvc.ControllerPublishVolume(ctx, req)
 				if err == nil {
@@ -741,7 +811,7 @@ func TestControllerPublishVolume(t *testing.T) {
 				mockedVolumesAPI.EXPECT().Get(gomock.Eq(ctx), gomock.Eq(req.VolumeId)).Return(volume, nil)
 				mockedInstancesAPI.EXPECT().AttachVolume(gomock.Eq(ctx), gomock.Eq(req.NodeId), gomock.Eq(req.VolumeId)).Return(nil, ah.ErrResourceNotFound)
 
-				controllerSvc := NewControllerService(mockedClient)
+				controllerSvc := NewControllerService(mockedClient, "")
 
 				r, err := controllerSvc.ControllerPublishVolume(ctx, req)
 				if err == nil {
@@ -784,7 +854,7 @@ func TestControllerPublishVolume(t *testing.T) {
 
 				mockedClient := &ah.APIClient{Volumes: mockedVolumesAPI, Instances: mockedInstancesAPI}
 
-				controllerSvc := NewControllerService(mockedClient)
+				controllerSvc := NewControllerService(mockedClient, "")
 
 				r, err := controllerSvc.ControllerPublishVolume(ctx, req)
 				if err == nil {
@@ -826,7 +896,7 @@ func TestControllerPublishVolume(t *testing.T) {
 
 				mockedClient := &ah.APIClient{Volumes: mockedVolumesAPI, Instances: mockedInstancesAPI}
 
-				controllerSvc := NewControllerService(mockedClient)
+				controllerSvc := NewControllerService(mockedClient, "")
 
 				resp, err := controllerSvc.ControllerPublishVolume(ctx, req)
 				if err != nil {
@@ -862,7 +932,7 @@ func TestControllerPublishVolume(t *testing.T) {
 
 				mockedClient := &ah.APIClient{Volumes: mockedVolumesAPI, Instances: mockedInstancesAPI}
 
-				controllerSvc := NewControllerService(mockedClient)
+				controllerSvc := NewControllerService(mockedClient, "")
 
 				r, err := controllerSvc.ControllerPublishVolume(ctx, req)
 				if err == nil {
@@ -899,7 +969,7 @@ func TestControllerPublishVolume(t *testing.T) {
 
 				mockedClient := &ah.APIClient{Volumes: mockedVolumesAPI, Instances: mockedInstancesAPI}
 
-				controllerSvc := NewControllerService(mockedClient)
+				controllerSvc := NewControllerService(mockedClient, "")
 
 				r, err := controllerSvc.ControllerPublishVolume(ctx, req)
 				if err == nil {
@@ -947,7 +1017,7 @@ func TestControllerUnpublishVolume(t *testing.T) {
 				mockedInstancesAPI.EXPECT().ActionInfo(gomock.Eq(ctx), gomock.Eq(req.NodeId), gomock.Eq(action.ID)).Return(&ah.InstanceAction{Action: &ah.Action{State: "success"}}, nil)
 				mockedClient := &ah.APIClient{Volumes: mockedVolumesAPI, Instances: mockedInstancesAPI}
 
-				controllerSvc := NewControllerService(mockedClient)
+				controllerSvc := NewControllerService(mockedClient, "")
 
 				resp, err := controllerSvc.ControllerUnpublishVolume(ctx, req)
 				if err != nil {
@@ -976,7 +1046,7 @@ func TestControllerUnpublishVolume(t *testing.T) {
 
 				mockedClient := &ah.APIClient{Volumes: mockedVolumesAPI, Instances: mockedInstancesAPI}
 
-				controllerSvc := NewControllerService(mockedClient)
+				controllerSvc := NewControllerService(mockedClient, "")
 
 				r, err := controllerSvc.ControllerUnpublishVolume(ctx, req)
 				if err == nil {
@@ -1010,7 +1080,7 @@ func TestControllerUnpublishVolume(t *testing.T) {
 
 				mockedClient := &ah.APIClient{Volumes: mockedVolumesAPI, Instances: mockedInstancesAPI}
 
-				controllerSvc := NewControllerService(mockedClient)
+				controllerSvc := NewControllerService(mockedClient, "")
 
 				r, err := controllerSvc.ControllerUnpublishVolume(ctx, req)
 				if err == nil {
@@ -1041,7 +1111,7 @@ func TestControllerUnpublishVolume(t *testing.T) {
 
 				mockedClient := &ah.APIClient{Volumes: mockedVolumesAPI, Instances: mockedInstancesAPI}
 
-				controllerSvc := NewControllerService(mockedClient)
+				controllerSvc := NewControllerService(mockedClient, "")
 
 				resp, err := controllerSvc.ControllerUnpublishVolume(ctx, req)
 				if err != nil {
@@ -1076,7 +1146,7 @@ func TestControllerUnpublishVolume(t *testing.T) {
 
 				mockedClient := &ah.APIClient{Volumes: mockedVolumesAPI, Instances: mockedInstancesAPI}
 
-				controllerSvc := NewControllerService(mockedClient)
+				controllerSvc := NewControllerService(mockedClient, "")
 
 				resp, err := controllerSvc.ControllerUnpublishVolume(ctx, req)
 				if err != nil {
@@ -1111,7 +1181,7 @@ func TestControllerUnpublishVolume(t *testing.T) {
 
 				mockedClient := &ah.APIClient{Volumes: mockedVolumesAPI, Instances: mockedInstancesAPI}
 
-				controllerSvc := NewControllerService(mockedClient)
+				controllerSvc := NewControllerService(mockedClient, "")
 
 				resp, err := controllerSvc.ControllerUnpublishVolume(ctx, req)
 				if err != nil {
@@ -1147,7 +1217,7 @@ func TestControllerUnpublishVolume(t *testing.T) {
 
 				mockedClient := &ah.APIClient{Volumes: mockedVolumesAPI, Instances: mockedInstancesAPI}
 
-				controllerSvc := NewControllerService(mockedClient)
+				controllerSvc := NewControllerService(mockedClient, "")
 
 				r, err := controllerSvc.ControllerUnpublishVolume(ctx, req)
 				if err == nil {
@@ -1209,7 +1279,7 @@ func TestControllerValidateVolumeCapabilities(t *testing.T) {
 				mockedVolumesAPI.EXPECT().Get(gomock.Eq(ctx), gomock.Eq(req.VolumeId)).Return(volume, nil)
 				mockedClient := &ah.APIClient{Volumes: mockedVolumesAPI}
 
-				controllerSvc := NewControllerService(mockedClient)
+				controllerSvc := NewControllerService(mockedClient, "")
 
 				resp, err := controllerSvc.ValidateVolumeCapabilities(ctx, req)
 				if err != nil {
@@ -1237,7 +1307,7 @@ func TestControllerValidateVolumeCapabilities(t *testing.T) {
 
 				mockedClient := &ah.APIClient{Volumes: mockedVolumesAPI}
 
-				controllerSvc := NewControllerService(mockedClient)
+				controllerSvc := NewControllerService(mockedClient, "")
 
 				r, err := controllerSvc.ValidateVolumeCapabilities(ctx, req)
 				if err == nil {
@@ -1265,7 +1335,7 @@ func TestControllerValidateVolumeCapabilities(t *testing.T) {
 				mockedVolumesAPI.EXPECT().Get(gomock.Eq(ctx), gomock.Eq(req.VolumeId)).Return(nil, ah.ErrResourceNotFound)
 				mockedClient := &ah.APIClient{Volumes: mockedVolumesAPI}
 
-				controllerSvc := NewControllerService(mockedClient)
+				controllerSvc := NewControllerService(mockedClient, "")
 
 				r, err := controllerSvc.ValidateVolumeCapabilities(ctx, req)
 				if err == nil {
@@ -1292,7 +1362,7 @@ func TestControllerValidateVolumeCapabilities(t *testing.T) {
 				mockedVolumesAPI.EXPECT().Get(gomock.Eq(ctx), gomock.Eq(req.VolumeId)).Return(&ah.Volume{}, nil)
 				mockedClient := &ah.APIClient{Volumes: mockedVolumesAPI}
 
-				controllerSvc := NewControllerService(mockedClient)
+				controllerSvc := NewControllerService(mockedClient, "")
 
 				r, err := controllerSvc.ValidateVolumeCapabilities(ctx, req)
 				if err == nil {
@@ -1320,7 +1390,7 @@ func TestControllerValidateVolumeCapabilities(t *testing.T) {
 				mockedVolumesAPI.EXPECT().Get(gomock.Eq(ctx), gomock.Eq(req.VolumeId)).Return(&ah.Volume{}, nil)
 				mockedClient := &ah.APIClient{Volumes: mockedVolumesAPI}
 
-				controllerSvc := NewControllerService(mockedClient)
+				controllerSvc := NewControllerService(mockedClient, "")
 
 				resp, err := controllerSvc.ValidateVolumeCapabilities(ctx, req)
 				if err != nil {
@@ -1373,7 +1443,7 @@ func TestControllerExpandVolume(t *testing.T) {
 
 				mockedClient := &ah.APIClient{Volumes: mockedVolumesAPI}
 
-				controllerSvc := NewControllerService(mockedClient)
+				controllerSvc := NewControllerService(mockedClient, "")
 
 				resp, err := controllerSvc.ControllerExpandVolume(ctx, req)
 				if err != nil {
@@ -1401,7 +1471,7 @@ func TestControllerExpandVolume(t *testing.T) {
 				mockedVolumesAPI := mocks.NewMockVolumesAPI(ctrl)
 				mockedClient := &ah.APIClient{Volumes: mockedVolumesAPI}
 
-				controllerSvc := NewControllerService(mockedClient)
+				controllerSvc := NewControllerService(mockedClient, "")
 
 				r, err := controllerSvc.ControllerExpandVolume(ctx, req)
 				if err == nil {
@@ -1430,7 +1500,7 @@ func TestControllerExpandVolume(t *testing.T) {
 
 				mockedClient := &ah.APIClient{Volumes: mockedVolumesAPI}
 
-				controllerSvc := NewControllerService(mockedClient)
+				controllerSvc := NewControllerService(mockedClient, "")
 
 				r, err := controllerSvc.ControllerExpandVolume(ctx, req)
 				if err == nil {
@@ -1457,7 +1527,7 @@ func TestControllerExpandVolume(t *testing.T) {
 				mockedVolumesAPI.EXPECT().Get(gomock.Eq(ctx), gomock.Eq(req.VolumeId)).Return(&ah.Volume{}, nil)
 				mockedClient := &ah.APIClient{Volumes: mockedVolumesAPI}
 
-				controllerSvc := NewControllerService(mockedClient)
+				controllerSvc := NewControllerService(mockedClient, "")
 
 				r, err := controllerSvc.ControllerExpandVolume(ctx, req)
 				if err == nil {
@@ -1485,7 +1555,7 @@ func TestControllerExpandVolume(t *testing.T) {
 				mockedVolumesAPI.EXPECT().Get(gomock.Eq(ctx), gomock.Eq(req.VolumeId)).Return(&ah.Volume{}, nil)
 				mockedClient := &ah.APIClient{Volumes: mockedVolumesAPI}
 
-				controllerSvc := NewControllerService(mockedClient)
+				controllerSvc := NewControllerService(mockedClient, "")
 
 				r, err := controllerSvc.ControllerExpandVolume(ctx, req)
 				if err == nil {
@@ -1517,7 +1587,7 @@ func TestControllerExpandVolume(t *testing.T) {
 				mockedVolumesAPI.EXPECT().Get(gomock.Eq(ctx), gomock.Eq(req.VolumeId)).Return(volume, nil)
 				mockedClient := &ah.APIClient{Volumes: mockedVolumesAPI}
 
-				controllerSvc := NewControllerService(mockedClient)
+				controllerSvc := NewControllerService(mockedClient, "")
 
 				resp, err := controllerSvc.ControllerExpandVolume(ctx, req)
 				if err != nil {
@@ -1560,7 +1630,7 @@ func TestControllerExpandVolume(t *testing.T) {
 
 				mockedClient := &ah.APIClient{Volumes: mockedVolumesAPI}
 
-				controllerSvc := NewControllerService(mockedClient)
+				controllerSvc := NewControllerService(mockedClient, "")
 
 				r, err := controllerSvc.ControllerExpandVolume(ctx, req)
 				if err == nil {
@@ -1595,7 +1665,7 @@ func TestControllerExpandVolume(t *testing.T) {
 				mockedVolumesAPI.EXPECT().Resize(gomock.Eq(ctx), gomock.Eq(req.VolumeId), gomock.Eq(10)).Return(nil, resizeErr)
 				mockedClient := &ah.APIClient{Volumes: mockedVolumesAPI}
 
-				controllerSvc := NewControllerService(mockedClient)
+				controllerSvc := NewControllerService(mockedClient, "")
 
 				r, err := controllerSvc.ControllerExpandVolume(ctx, req)
 				if err == nil {
