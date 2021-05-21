@@ -4,6 +4,8 @@
 
 replicaCount: 1
 apiUrl: ""
+# ID of the Kubernetes cluster.
+clusterID: "ololo"
 
 image:
   repository: advancedhosting/ah-csi-driver
@@ -39,9 +41,13 @@ affinity: {}
 
 storageClasses: []
   # Example
+  #   # storage name
   # - name: HHD-AMS1-LVL1
+  #   # product slug. See https://websa.advancedhosting.com/slugs
   #   product: hdd_lvl1_ams1
+  #   # setting as default storage
   #   default: true
+  #   # reclaim policy. Defaults to Delete
   #   reclaimPolicy: Retain
   # - name: HHD-AMS1-LVL2
   #   product: hdd_lvl1_ams1

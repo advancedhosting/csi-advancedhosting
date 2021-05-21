@@ -57,7 +57,10 @@ spec:
             - "--endpoint=$(CSI_ENDPOINT)"
             - "--token=$(AH_ACCESS_TOKEN)"
             {{- if .Values.apiUrl }}
-            - "--url={{ .Values.apiUrl}}"
+            - "--url={{ .Values.apiUrl }}"
+            {{- end }}
+            {{- if .Values.clusterID }}
+            - "--cluster-id={{ .Values.clusterID }}"
             {{- end }}
           env:
             - name: CSI_ENDPOINT
