@@ -11,5 +11,5 @@ subjects:
     namespace: {{ .Release.Namespace }}
 roleRef:
   kind: ClusterRole
-  name: ebs-external-attacher-role
+  name: csi-ah-attacher-role
   apiGroup: rbac.authorization.k8s.io
