@@ -69,6 +69,9 @@ spec:
             {{- if .Values.apiUrl }}
             - "--url={{ .Values.apiUrl}}"
             {{- end }}
+            {{- if .Values.clusterID }}
+            - "--cluster-id={{ .Values.clusterID }}"
+            {{- end }}
           env:
             - name: CSI_ENDPOINT
               value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
