@@ -1,8 +1,16 @@
+{{ range .Values.storageClasses }}
+---
 kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:
-  name: ah-block-storage
+  name: {{ .name }}
   labels:
-    {{- include "ah-csi-driver.labels" . | nindent 4 }}
+    {{- include "ah-csi-driver.labels" $ | nindent 4 }}
+  annotations:
+    storageclass.kubernetes.io/is-default-class: {{ .default | default "false" | quote }}
 provisioner: csi.advancedhosting.com
+parameters:
+  product-slug: {{ .product }}
 allowVolumeExpansion: true
+reclaimPolicy: {{ .reclaimPolicy | default "Delete" }}
+{{ end }}
