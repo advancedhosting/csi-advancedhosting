@@ -3,6 +3,16 @@ entries:
   ah-csi-driver:
   - apiVersion: v2
     appVersion: 1.16.0
+    created: "2021-05-21T09:57:18.713614661Z"
+    description: A Helm chart for AdvancedHosting CSI Driver
+    digest: fc9c8ffee6041480c977af099458c90766a1c80fb23f880b7549c5a47fc59f12
+    name: ah-csi-driver
+    type: application
+    urls:
+    - https://github.com/advancedhosting/csi-advancedhosting/releases/download/helm-chart-ah-csi-driver-0.1.7/ah-csi-driver-0.1.7.tgz
+    version: 0.1.7
+  - apiVersion: v2
+    appVersion: 1.16.0
     created: "2021-05-21T09:21:24.574376953Z"
     description: A Helm chart for AdvancedHosting CSI Driver
     digest: f4ff082bbd4d27904380144aa9f816b2c42d8a4b17afd97f8a12590e25170284
