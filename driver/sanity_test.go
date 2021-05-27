@@ -218,7 +218,13 @@ func (vs *fakeVolumesAPI) Actions(ctx context.Context, volumeID string) ([]ah.Vo
 }
 
 func (vs *fakeVolumesAPI) Delete(ctx context.Context, volumeID string) error {
-	return nil
+	for index, volume := range vs.volumes {
+		if volume.ID == volumeID {
+			vs.volumes = append(vs.volumes[:index], vs.volumes[index+1:]...)
+			return nil
+		}
+	}
+	return ah.ErrResourceNotFound
 }
 
 type fakeLinuxMounter struct {

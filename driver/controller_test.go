@@ -1545,7 +1545,7 @@ func TestControllerExpandVolume(t *testing.T) {
 			testFunc: func(t *testing.T) {
 				req := &csi.ControllerExpandVolumeRequest{
 					VolumeId:      "test-id",
-					CapacityRange: &csi.CapacityRange{RequiredBytes: 2 * gb, LimitBytes: 5 * gb},
+					CapacityRange: &csi.CapacityRange{RequiredBytes: 1000, LimitBytes: 5000},
 				}
 
 				ctx := context.Background()
