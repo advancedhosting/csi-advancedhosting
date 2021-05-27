@@ -29,7 +29,7 @@ import (
 
 const (
 	gb                   = 1 << (10 * 3)
-	MinVolumeSize        = 10 * gb
+	MinVolumeSize        = 1 * gb
 	DefaultVolumeSize    = MinVolumeSize
 	VolumeProductSlugKey = "product-slug"
 )
