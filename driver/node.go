@@ -47,12 +47,12 @@ func NewNodeService(client *ah.APIClient) (*nodeService, error) {
 	}
 	cloudServerID, err := metadata.CloudServerID()
 	if err != nil || cloudServerID == "" {
-		return nil, fmt.Errorf("an error occurred while getting cloud server ID")
+		return nil, fmt.Errorf("an error occurred while getting cloud server ID %s: %s", cloudServerID, err)
 	}
 
 	cloudServer, err := client.Instances.Get(context.Background(), cloudServerID)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while getting cloud server info")
+		return nil, fmt.Errorf("an error occurred while getting cloud server info: %s", err)
 	}
 	return &nodeService{
 		client:        client,
