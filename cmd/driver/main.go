@@ -30,6 +30,7 @@ func main() {
 		apiUrl    = flag.String("url", "https://api.websa.com", "Advanced Hosting api url.")
 		apiToken  = flag.String("token", "", "Advanced Hosting access token.")
 		clusterID = flag.String("cluster-id", "", "Cluster ID.")
+		mode      = flag.String("mode", "", "Driver mode (controller|node)")
 	)
 	klog.InitFlags(nil)
 	flag.Parse()
@@ -39,6 +40,7 @@ func main() {
 		Url:       *apiUrl,
 		Token:     *apiToken,
 		ClusterID: *clusterID,
+		Mode:      *mode,
 	}
 	csiDriver, err := driver.NewDriver(options)
 	if err != nil {

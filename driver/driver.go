@@ -37,6 +37,8 @@ const (
 	DriverName                = "csi.advancedhosting.com"
 	DriverVersion             = "1.0.0"
 	TopologySegmentDatacenter = DriverName + "/datacenter"
+	ControllerMode            = "controller"
+	NodeMode                  = "node"
 )
 
 type DriverOptions struct {
@@ -44,11 +46,13 @@ type DriverOptions struct {
 	Url       string
 	Token     string
 	ClusterID string
+	Mode      string
 }
 
 // Driver implements the csi driver according the spec
 type Driver struct {
 	endpoint string
+	mode     string
 	*controllerService
 	*nodeService
 }
@@ -65,16 +69,27 @@ func NewDriver(options *DriverOptions) (*Driver, error) {
 		return nil, fmt.Errorf("an error occurred while creating api client")
 	}
 
-	driverControllerService := NewControllerService(client, options.ClusterID)
-	driverNodeService, err := NewNodeService(client)
-	if err != nil {
-		return nil, fmt.Errorf("error creating driverNodeService: %v", err)
+	driver := &Driver{
+		endpoint: options.Endpoint,
+		mode:     options.Mode,
 	}
 
-	driver := &Driver{
-		endpoint:          options.Endpoint,
-		controllerService: driverControllerService,
-		nodeService:       driverNodeService,
+	switch options.Mode {
+	case ControllerMode:
+		driver.controllerService = NewControllerService(client, options.ClusterID)
+	case NodeMode:
+		driverNodeService, err := NewNodeService(client)
+		if err != nil {
+			return nil, fmt.Errorf("error creating driverNodeService: %v", err)
+		}
+		driver.nodeService = driverNodeService
+	default:
+		driver.controllerService = NewControllerService(client, options.ClusterID)
+		driverNodeService, err := NewNodeService(client)
+		if err != nil {
+			return nil, fmt.Errorf("error creating driverNodeService: %v", err)
+		}
+		driver.nodeService = driverNodeService
 	}
 
 	return driver, nil
@@ -88,7 +103,7 @@ func (d *Driver) Run() error {
 	}
 
 	if endpoint.Scheme != "unix" {
-		return fmt.Errorf("Scheme %s is not supported", endpoint.Scheme)
+		return fmt.Errorf("scheme %s is not supported", endpoint.Scheme)
 	}
 
 	grpcAddress := path.Join(endpoint.Host, filepath.FromSlash(endpoint.Path))
@@ -116,8 +131,16 @@ func (d *Driver) Run() error {
 	grpcServer := grpc.NewServer(opts...)
 
 	csi.RegisterIdentityServer(grpcServer, d)
-	csi.RegisterControllerServer(grpcServer, d)
-	csi.RegisterNodeServer(grpcServer, d)
+
+	switch d.mode {
+	case ControllerMode:
+		csi.RegisterControllerServer(grpcServer, d)
+	case NodeMode:
+		csi.RegisterNodeServer(grpcServer, d)
+	default:
+		csi.RegisterControllerServer(grpcServer, d)
+		csi.RegisterNodeServer(grpcServer, d)
+	}
 
 	stopCh := make(chan os.Signal, 1)
 	signal.Notify(stopCh, syscall.SIGINT, syscall.SIGTERM)
