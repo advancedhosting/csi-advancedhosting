@@ -10,7 +10,7 @@ clusterID: ""
 image:
   repository: advancedhosting/ah-csi-driver
   pullPolicy: IfNotPresent
-  tag: "v0.2.1"
+  tag: "v0.2.3"
 
 
 serviceAccount:

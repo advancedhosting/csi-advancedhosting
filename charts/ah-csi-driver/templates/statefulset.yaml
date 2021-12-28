@@ -64,6 +64,7 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args :
             - "--v=5"
+            - "--mode=controller"
             - "--endpoint=$(CSI_ENDPOINT)"
             - "--token=$(AH_ACCESS_TOKEN)"
             {{- if .Values.apiUrl }}
