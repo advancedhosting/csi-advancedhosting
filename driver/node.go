@@ -25,12 +25,14 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"k8s.io/klog"
+	"os"
 	"path/filepath"
 )
 
 const (
 	DefaultFSType     = "ext4"
 	MaxVolumesPerNode = 8
+	InstancePath      = "/var/lib/cloud/instance"
 )
 
 type nodeService struct {
@@ -40,24 +42,57 @@ type nodeService struct {
 	datacenterID  string
 }
 
-func NewNodeService(client *ah.APIClient) (*nodeService, error) {
+func cloudServerID() (string, error) {
+	var csID string
+	csID, err := cloudServerIDFromMetadata()
+	if err != nil {
+		klog.Warning("error getting cloud server id from metadata: ", err, ".Trying to get id from local")
+		csID, err = cloudServerIDFromLocal()
+		if err != nil {
+			return "", err
+		}
+	}
+	return csID, nil
+}
+
+func cloudServerIDFromMetadata() (string, error) {
 	metadata, err := cloud.NewMetadata()
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while creating metadata client")
+		return "", fmt.Errorf("an error occurred while creating metadata client")
 	}
-	cloudServerID, err := metadata.CloudServerID()
-	if err != nil || cloudServerID == "" {
-		return nil, fmt.Errorf("an error occurred while getting cloud server ID %s: %s", cloudServerID, err)
+	csID, err := metadata.CloudServerID()
+	if err != nil || csID == "" {
+		return "", fmt.Errorf("an error occurred while getting cloud server ID %s: %v", csID, err)
+	}
+	return csID, nil
+}
+
+func cloudServerIDFromLocal() (string, error) {
+	realPath, err := os.Readlink(InstancePath)
+	if err != nil {
+		return "", err
+	}
+	_, csID := filepath.Split(realPath)
+	if csID == "" {
+		return "", fmt.Errorf("an error occurred while getting cloud server id from local: Empty symlink")
+	}
+	return csID, nil
+}
+
+func NewNodeService(client *ah.APIClient) (*nodeService, error) {
+	csID, err := cloudServerID()
+	if err != nil || csID == "" {
+		return nil, fmt.Errorf("an error occurred while getting cloud server ID %s: %v", csID, err)
 	}
 
-	cloudServer, err := client.Instances.Get(context.Background(), cloudServerID)
+	cloudServer, err := client.Instances.Get(context.Background(), csID)
 	if err != nil {
 		return nil, fmt.Errorf("an error occurred while getting cloud server info: %s", err)
 	}
 	return &nodeService{
 		client:        client,
 		mounter:       NewLinuxMounter(),
-		cloudServerID: cloudServerID,
+		cloudServerID: csID,
 		datacenterID:  cloudServer.Datacenter.ID,
 	}, nil
 }
