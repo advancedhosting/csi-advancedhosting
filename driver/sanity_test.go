@@ -22,14 +22,13 @@ import (
 	"github.com/advancedhosting/advancedhosting-api-go/ah"
 	"github.com/google/uuid"
 	"github.com/kubernetes-csi/csi-test/v3/pkg/sanity"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
 )
 
 func TestSanity(t *testing.T) {
-	dir, err := ioutil.TempDir("", "sanity-csi")
+	dir, err := os.MkdirTemp("", "sanity-csi")
 	if err != nil {
 		t.Fatalf("error creating directory %v", err)
 	}
