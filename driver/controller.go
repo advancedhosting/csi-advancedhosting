@@ -28,8 +28,8 @@ import (
 )
 
 const (
-	gb                   = 1 << (10 * 3)
-	MinVolumeSize        = 1 * gb
+	GiB                  = 1 << (10 * 3)
+	MinVolumeSize        = 1 * GiB
 	DefaultVolumeSize    = MinVolumeSize
 	VolumeProductSlugKey = "product-slug"
 )
@@ -43,15 +43,19 @@ func isValidVolumeCapability(volCap *csi.VolumeCapability) bool {
 	}
 }
 
+func roundUpSize(volumeSizeBytes int64, allocationUnitBytes int64) int64 {
+	return (volumeSizeBytes + allocationUnitBytes - 1) / allocationUnitBytes
+}
+
 func volumeSize(capRange *csi.CapacityRange) (int64, error) {
 	if capRange == nil {
-		return DefaultVolumeSize / gb, nil
+		return DefaultVolumeSize / GiB, nil
 	}
 
 	minBytes := capRange.GetRequiredBytes()
 	maxBytes := capRange.GetLimitBytes()
 	if minBytes <= 0 && maxBytes <= 0 {
-		return DefaultVolumeSize / gb, nil
+		return DefaultVolumeSize / GiB, nil
 	}
 
 	minSize := minBytes
@@ -63,7 +67,7 @@ func volumeSize(capRange *csi.CapacityRange) (int64, error) {
 		return 0, fmt.Errorf("volume size exceeds the limit")
 	}
 
-	return minSize / gb, nil
+	return roundUpSize(minSize, GiB), nil
 }
 
 type controllerService struct {
@@ -159,7 +163,7 @@ func (c *controllerService) createVolumeResponse(volume *ah.Volume) *csi.CreateV
 	return &csi.CreateVolumeResponse{
 		Volume: &csi.Volume{
 			VolumeId:      volume.ID,
-			CapacityBytes: int64(volume.Size) * gb,
+			CapacityBytes: int64(volume.Size) * GiB,
 			AccessibleTopology: []*csi.Topology{
 				{
 					Segments: map[string]string{
@@ -399,7 +403,7 @@ func (c *controllerService) ControllerExpandVolume(ctx context.Context, req *csi
 	}
 
 	if newSize <= int64(volume.Size) {
-		return &csi.ControllerExpandVolumeResponse{CapacityBytes: int64(volume.Size * gb), NodeExpansionRequired: true}, nil
+		return &csi.ControllerExpandVolumeResponse{CapacityBytes: int64(volume.Size * GiB), NodeExpansionRequired: true}, nil
 	}
 
 	action, err := c.client.Volumes.Resize(ctx, volumeID, int(newSize))
@@ -415,7 +419,7 @@ func (c *controllerService) ControllerExpandVolume(ctx context.Context, req *csi
 	}
 
 	return &csi.ControllerExpandVolumeResponse{
-		CapacityBytes:         newSize * gb,
+		CapacityBytes:         newSize * GiB,
 		NodeExpansionRequired: true,
 	}, nil
 }

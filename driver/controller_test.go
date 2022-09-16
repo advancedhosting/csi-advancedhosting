@@ -32,7 +32,7 @@ import (
 
 func TestControllerCreateVolume(t *testing.T) {
 
-	capRange := &csi.CapacityRange{RequiredBytes: 10 * gb}
+	capRange := &csi.CapacityRange{RequiredBytes: 10 * GiB}
 	volCap := []*csi.VolumeCapability{
 		{
 			AccessMode: &csi.VolumeCapability_AccessMode{
@@ -113,7 +113,7 @@ func TestControllerCreateVolume(t *testing.T) {
 				if volume.GetVolumeId() != "volumeID" {
 					t.Errorf("Unexpected volume id: %v", volume.GetVolumeId())
 				}
-				if volume.GetCapacityBytes() != 10*gb {
+				if volume.GetCapacityBytes() != 10*GiB {
 					t.Errorf("Unexpected capacity: %v", volume.GetCapacityBytes())
 				}
 
@@ -183,7 +183,7 @@ func TestControllerCreateVolume(t *testing.T) {
 				if volume.GetVolumeId() != "volumeID" {
 					t.Errorf("Unexpected volume id: %v", volume.GetVolumeId())
 				}
-				if volume.GetCapacityBytes() != 10*gb {
+				if volume.GetCapacityBytes() != 10*GiB {
 					t.Errorf("Unexpected capacity: %v", volume.GetCapacityBytes())
 				}
 
@@ -319,8 +319,8 @@ func TestControllerCreateVolume(t *testing.T) {
 				req := &csi.CreateVolumeRequest{
 					Name: "test",
 					CapacityRange: &csi.CapacityRange{
-						RequiredBytes: 10*gb + 1,
-						LimitBytes:    10 * gb,
+						RequiredBytes: 10*GiB + 1,
+						LimitBytes:    10 * GiB,
 					},
 					VolumeCapabilities: volCap,
 					Parameters:         params,
@@ -499,7 +499,7 @@ func TestControllerCreateVolume(t *testing.T) {
 				if volume.GetVolumeId() != "volumeID" {
 					t.Errorf("Unexpected volume id: %v", volume.GetVolumeId())
 				}
-				if volume.GetCapacityBytes() != 10*gb {
+				if volume.GetCapacityBytes() != 10*GiB {
 					t.Errorf("Unexpected capacity: %v", volume.GetCapacityBytes())
 				}
 
@@ -1409,7 +1409,7 @@ func TestControllerValidateVolumeCapabilities(t *testing.T) {
 }
 
 func TestControllerExpandVolume(t *testing.T) {
-	capRange := &csi.CapacityRange{RequiredBytes: 10 * gb}
+	capRange := &csi.CapacityRange{RequiredBytes: 10 * GiB}
 
 	testCases := []struct {
 		name     string
@@ -1450,7 +1450,7 @@ func TestControllerExpandVolume(t *testing.T) {
 					t.Fatalf("Unexpected error: %v", err)
 				}
 				expectedResult := &csi.ControllerExpandVolumeResponse{
-					CapacityBytes:         10 * gb,
+					CapacityBytes:         10 * GiB,
 					NodeExpansionRequired: true,
 				}
 				if !reflect.DeepEqual(resp, expectedResult) {
@@ -1594,7 +1594,7 @@ func TestControllerExpandVolume(t *testing.T) {
 					t.Fatalf("Unexpected error: %v", err)
 				}
 				expectedResult := &csi.ControllerExpandVolumeResponse{
-					CapacityBytes:         int64(volume.Size * gb),
+					CapacityBytes:         int64(volume.Size * GiB),
 					NodeExpansionRequired: true,
 				}
 				if !reflect.DeepEqual(resp, expectedResult) {
